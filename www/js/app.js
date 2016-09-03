@@ -74,11 +74,11 @@ angular.module('starter', ['ionic', 'btford.socket-io', 'ngCordova', 'ngCordovaO
 $scope.user = {};
 $scope.loginWithFacebook = function(){
    $cordovaOauth.facebook("1800960423459125", ["email"]).then(function(result) {
-       //     alert(result.access_token);
+            alert(result.access_token);
        $http.get('https://graph.facebook.com/v2.7/me?fields=id,name,picture&access_token=' + result.access_token).success(function(data, status, header, config){
          $scope.user.fullName = data.name;
          $scope.user.displayPicture = data.picture.data.url;
-        // alert($scope.user.fullName+ "" + $scope.user.displayPicture);
+         alert($scope.user.fullName+ "" + $scope.user.displayPicture);
         $state.go('chat', {data: {nickname: $scope.user.fullName, displayPicture: $scope.user.displayPicture}});
 
        })

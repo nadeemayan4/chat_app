@@ -3,9 +3,10 @@
 // angular.module is a global place for creating, registering and retrieving Angular modules
 // 'starter' is the name of this angular module example (also set in a <body> attribute in index.html)
 // the 2nd parameter is an array of 'requires'
-angular.module('starter', ['ionic', 'btford.socket-io', 'ngCordova', 'ngCordovaOauth'])
+angular.module('starter', ['ionic', 'btford.socket-io', 'ngCordova', 'ngCordovaOauth', 'ngStorage', 'firebase'])
 
 .run(function($ionicPlatform) {
+  
   $ionicPlatform.ready(function() {
     if(window.cordova && window.cordova.plugins.Keyboard) {
       // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
@@ -29,8 +30,28 @@ angular.module('starter', ['ionic', 'btford.socket-io', 'ngCordova', 'ngCordovaO
     templateUrl: 'templates/login.html'
 })
 
+  .state('projects',{
+    url:'/projects',
+    templateUrl: 'templates/projects.html'
+})
+
+  .state('coremembers',{
+    url:'/coremembers',
+    templateUrl: 'templates/coremembers.html'
+})
+
+  .state('accounts',{
+    url:'/accounts',
+    templateUrl: 'templates/accounts.html'
+})
+
+  .state('events',{
+    url:'/events',
+    templateUrl: 'templates/events.html'
+})
+
  .state('chat',{
-    url:'/chat/',
+    url:'/chat',
     params: {data : null},
     templateUrl: 'templates/chat.html'
  });
@@ -63,7 +84,7 @@ angular.module('starter', ['ionic', 'btford.socket-io', 'ngCordova', 'ngCordovaO
   }
 })
 
-.controller('LoginController', function($scope, $state, $cordovaOauth, $http){
+.controller('LoginController', function($scope, $state, $cordovaOauth, $http, $firebaseAuth, $localStorage, $window){
   $scope.join = function(nickname){
     if(nickname)
     {
@@ -72,24 +93,72 @@ angular.module('starter', ['ionic', 'btford.socket-io', 'ngCordova', 'ngCordovaO
   }
 
 $scope.user = {};
-$scope.loginWithFacebook = function(){
-   $cordovaOauth.facebook("1800960423459125", ["email"]).then(function(result) {
-            alert(result.access_token);
-       $http.get('https://graph.facebook.com/v2.7/me?fields=id,name,picture&access_token=' + result.access_token).success(function(data, status, header, config){
+openFB.init({appId: '1800960423459125'})
+
+
+	$scope.loginWithFacebook = function(){
+  openFB.getLoginStatus(function(response) {
+   if (response.status === 'connected') {
+    // alert("connected");
+       $localStorage.accessToken = response.authResponse.accessToken;
+         $http.get('https://graph.facebook.com/v2.7/me?fields=id,name,picture&access_token=' + $localStorage.accessToken).success(function(data, status, header, config){
          $scope.user.fullName = data.name;
          $scope.user.displayPicture = data.picture.data.url;
-         alert($scope.user.fullName+ "" + $scope.user.displayPicture);
+       //   alert($scope.user.fullName+ "" + $scope.user.displayPicture);
         $state.go('chat', {data: {nickname: $scope.user.fullName, displayPicture: $scope.user.displayPicture}});
-
+    
        })
+
+      
+    } else {
+	
+	  
+openFB.login(function(response) {
+ // alert("calling login");
+  //   $cordovaOauth.facebook("1800960423459125", ["email"]).then(function(result) {
+         $localStorage.accessToken = response.authResponse.accessToken;
+         
+       $http.get('https://graph.facebook.com/v2.7/me?fields=id,name,picture&access_token=' + $localStorage.accessToken).success(function(data, status, header, config){
+         $scope.user.fullName = data.name;
+         $scope.user.displayPicture = data.picture.data.url;
+       //   alert($scope.user.fullName+ "" + $scope.user.displayPicture);
+        $state.go('chat', {data: {nickname: $scope.user.fullName, displayPicture: $scope.user.displayPicture}});
+       
+       })
+          
         }, function(error) {
-         //   alert(error);
+            alert(error);
         });
+  
+
 }
 
-})
+ })
+  }
+ 
+ $scope.projects = function(){
+   $state.go('projects');
 
-.controller('ChatController', function($scope, $timeout, $stateParams, Socket, $ionicScrollDelegate, $cordovaMedia){
+ }
+
+  $scope.coremembers = function(){
+   $state.go('coremembers');
+
+ }
+
+  $scope.accounts = function(){
+   $state.go('accounts');
+
+ }
+
+  $scope.events = function(){
+   $state.go('events');
+
+ }
+
+})
+      
+.controller('ChatController', function($scope,  $state, $timeout, $stateParams, Socket, $ionicScrollDelegate, $cordovaMedia, $ionicActionSheet, $ionicLoading, $cordovaFacebook, $localStorage){
 
  $scope.status_message = "Welcome to ChatApp";
  $scope.messages = [];
@@ -120,7 +189,7 @@ $scope.loginWithFacebook = function(){
     if($scope.scoketId == data.socketId)
     playAudio("audio/outgoing.mp3");
     else
-    playAudio("audio/incoming.mp3");
+    playAudio("audio/outgoing.mp3");
 
     $ionicScrollDelegate.$getByHandle('mainScroll').scrollBottom(true);
   })
@@ -202,4 +271,38 @@ Socket.on('typing', function(data){
    return COLORS[index];
  }
 
+ /* $scope.showLogout = function() {
+    
+    var hideSheet = $ionicActionSheet.show({
+			destructiveText: 'Logout',
+      cancelText: 'Cancel',
+			titleText: 'Are you sure you want to logout?',
+			cancel: function() {},
+			buttonClicked: function(index) {
+				return true;
+			},
+			destructiveButtonClicked: function(){
+				$ionicLoading.show({
+				  template: 'Logging out...'
+				});
+
+//         Facebook logout
+//         $ionicLoading.hide();
+         openFB.logout(function(response) {
+           delete $localStorage.accessToken;
+           $state.go('login');
+           
+          $ionicLoading.hide();
+         })
+//        },
+ //       function(fail){
+ //         $ionicLoading.hide();
+//        });
+			}
+		});
+	};*/
+
+  $scope.returntoLogin = function() {
+    $state.go('login');
+  }
 })

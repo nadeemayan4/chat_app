@@ -104,3 +104,13 @@
 #login_bg{
     background-image: url('../img/login_bg.png');
 }
+
+.box {
+    height: 100px !important;
+    line-height: 90px;
+}
+
+
+
+
+
